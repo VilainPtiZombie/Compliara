@@ -10,9 +10,11 @@ export class DeclarationsService {
       serviceId: string;
       rgaaVersion?: string;
       dateAudit?: string;
+      auditCompany?: string;
       contactName?: string;
       contactEmail?: string;
       contactPhone?: string;
+      tools?: string;
       pages?: { name: string; url: string; pageType?: string }[];
     },
     tenantId: string,
@@ -23,9 +25,11 @@ export class DeclarationsService {
         serviceId: data.serviceId,
         rgaaVersion: data.rgaaVersion ?? '4.1',
         dateAudit: data.dateAudit ? new Date(data.dateAudit) : null,
+        auditCompany: data.auditCompany,
         contactName: data.contactName,
         contactEmail: data.contactEmail,
         contactPhone: data.contactPhone,
+        tools: data.tools,
         auditedPages: data.pages?.length
           ? {
               create: data.pages.map((p, i) => ({
@@ -60,9 +64,11 @@ export class DeclarationsService {
       rgaaVersion?: string;
       dateAudit?: string;
       status?: string;
+      auditCompany?: string;
       contactName?: string;
       contactEmail?: string;
       contactPhone?: string;
+      tools?: string;
     },
     tenantId: string,
   ) {
@@ -73,9 +79,11 @@ export class DeclarationsService {
         ...(data.rgaaVersion && { rgaaVersion: data.rgaaVersion }),
         ...(data.dateAudit !== undefined && { dateAudit: data.dateAudit ? new Date(data.dateAudit) : null }),
         ...(data.status && { status: data.status as any }),
+        ...(data.auditCompany !== undefined && { auditCompany: data.auditCompany }),
         ...(data.contactName !== undefined && { contactName: data.contactName }),
         ...(data.contactEmail !== undefined && { contactEmail: data.contactEmail }),
         ...(data.contactPhone !== undefined && { contactPhone: data.contactPhone }),
+        ...(data.tools !== undefined && { tools: data.tools }),
       },
       include: { service: { select: { id: true, name: true } } },
     });

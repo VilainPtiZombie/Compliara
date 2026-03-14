@@ -25,9 +25,11 @@ export class DeclarationsService {
     rgaaVersion?: string;
     dateAudit?: string | null;
     status?: string;
+    auditCompany?: string;
     contactName?: string;
     contactEmail?: string;
     contactPhone?: string;
+    tools?: string;
   }) {
     return this.http.put<any>(`${this.base}/${id}`, data);
   }
@@ -36,9 +38,11 @@ export class DeclarationsService {
     serviceId: string;
     rgaaVersion: string;
     dateAudit?: Date | null;
+    auditCompany?: string;
     contactName?: string;
     contactEmail?: string;
     contactPhone?: string;
+    tools?: string;
     pages?: { name: string; url: string; pageType: string }[];
   }) {
     return this.http.post<any>(this.base, data);

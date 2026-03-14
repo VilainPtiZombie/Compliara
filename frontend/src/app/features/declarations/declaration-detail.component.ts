@@ -76,7 +76,16 @@ const RGAA_VERSIONS = ['4.1', '4.1.2', '3.0'];
               [showIcon]="true" styleClass="w-full" />
           </div>
           <div class="field">
-            <label>Auditeur(s)</label>
+            <label>Société auditrice</label>
+            <input pInputText [(ngModel)]="editForm.auditCompany" class="w-full" />
+          </div>
+          <div class="field">
+            <label>Outils utilisés</label>
+            <input pInputText [(ngModel)]="editForm.tools" class="w-full"
+              placeholder="Wave, Colour Contrast Analyser..." />
+          </div>
+          <div class="field">
+            <label>Nom du responsable</label>
             <input pInputText [(ngModel)]="editForm.contactName" class="w-full" />
           </div>
           <div class="field">
@@ -322,7 +331,7 @@ export class DeclarationDetailComponent implements OnInit {
   statuses = STATUSES;
   rgaaVersions = RGAA_VERSIONS;
 
-  editForm = { status: '', rgaaVersion: '', dateAudit: null as Date | null, contactName: '', contactEmail: '', contactPhone: '' };
+  editForm = { status: '', rgaaVersion: '', dateAudit: null as Date | null, auditCompany: '', tools: '', contactName: '', contactEmail: '', contactPhone: '' };
 
   filterStatus: string | null = null;
   filterImpact: string | null = null;
@@ -374,6 +383,8 @@ export class DeclarationDetailComponent implements OnInit {
       status: d.status,
       rgaaVersion: d.rgaaVersion,
       dateAudit: d.dateAudit ? new Date(d.dateAudit) : null,
+      auditCompany: d.auditCompany ?? '',
+      tools: d.tools ?? '',
       contactName: d.contactName ?? '',
       contactEmail: d.contactEmail ?? '',
       contactPhone: d.contactPhone ?? '',
@@ -382,7 +393,7 @@ export class DeclarationDetailComponent implements OnInit {
   }
 
   resetEditForm() {
-    this.editForm = { status: '', rgaaVersion: '', dateAudit: null, contactName: '', contactEmail: '', contactPhone: '' };
+    this.editForm = { status: '', rgaaVersion: '', dateAudit: null, auditCompany: '', tools: '', contactName: '', contactEmail: '', contactPhone: '' };
   }
 
   saveEdit() {
@@ -392,6 +403,8 @@ export class DeclarationDetailComponent implements OnInit {
       status: this.editForm.status,
       rgaaVersion: this.editForm.rgaaVersion,
       dateAudit: this.editForm.dateAudit?.toISOString() ?? null,
+      auditCompany: this.editForm.auditCompany,
+      tools: this.editForm.tools,
       contactName: this.editForm.contactName,
       contactEmail: this.editForm.contactEmail,
       contactPhone: this.editForm.contactPhone,
