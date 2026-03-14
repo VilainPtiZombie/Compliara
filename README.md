@@ -223,6 +223,14 @@ CriterionResult (1) ──── (0..1) CorrectiveAction
 
 ---
 
+## Contribution & workflow Git
+
+Le projet suit un workflow basé sur des branches `feat/*` et `fix/*` mergées dans `develop` puis `main`.
+
+Voir [docs/git-workflow.md](docs/git-workflow.md) pour le détail complet : nommage des branches, convention de commits, process de release, commandes utiles.
+
+---
+
 ## Licence
 
 Copyright (c) 2026 Compliara. Tous droits réservés.
