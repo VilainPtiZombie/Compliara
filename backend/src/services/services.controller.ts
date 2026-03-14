@@ -4,17 +4,13 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ServicesService } from './services.service';
 
 class CreateServiceDto {
-  @IsString()
-  @IsNotEmpty()
-  name: string;
-
-  @IsString()
-  @IsNotEmpty()
-  url: string;
-
-  @IsString()
-  @IsOptional()
-  description?: string;
+  @IsString() @IsNotEmpty() name: string;
+  @IsString() @IsNotEmpty() url: string;
+  @IsString() @IsOptional() description?: string;
+  @IsString() @IsOptional() technologies?: string;
+  @IsString() @IsOptional() contactName?: string;
+  @IsString() @IsOptional() contactEmail?: string;
+  @IsString() @IsOptional() contactPhone?: string;
 }
 
 @UseGuards(JwtAuthGuard)

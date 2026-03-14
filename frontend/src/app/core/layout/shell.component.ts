@@ -208,6 +208,7 @@ export class ShellComponent {
     { label: 'Tableau de bord', icon: 'pi-home', route: '/dashboard' },
     { label: 'Services', icon: 'pi-globe', route: '/services' },
     { label: 'Déclarations', icon: 'pi-file-check', route: '/declarations' },
+    { label: 'Publication', icon: 'pi-send', route: '/declarations/publish' },
     { label: 'Planning', icon: 'pi-calendar', route: '/planning' },
   ];
 

@@ -52,6 +52,7 @@ import { ServicesService } from '../../core/services/services.service';
       (onHide)="resetForm()"
     >
       <div class="dialog-form">
+        <div class="form-section-title">Informations générales</div>
         <div class="field">
           <label for="svc-name">Nom du service <span class="required">*</span></label>
           <input pInputText id="svc-name" [(ngModel)]="form.name" placeholder="Mon service" class="w-full" />
@@ -62,8 +63,31 @@ import { ServicesService } from '../../core/services/services.service';
         </div>
         <div class="field">
           <label for="svc-desc">Description</label>
-          <textarea pTextarea id="svc-desc" [(ngModel)]="form.description" rows="3"
+          <textarea pTextarea id="svc-desc" [(ngModel)]="form.description" rows="2"
             placeholder="Description optionnelle" class="w-full"></textarea>
+        </div>
+        <div class="field">
+          <label for="svc-tech">Technologies utilisées</label>
+          <input pInputText id="svc-tech" [(ngModel)]="form.technologies"
+            placeholder="HTML5, CSS, JavaScript, React..." class="w-full" />
+          <small>Séparées par des virgules</small>
+        </div>
+
+        <div class="form-section-title">Contact accessibilité</div>
+        <div class="field">
+          <label for="svc-cname">Nom du responsable</label>
+          <input pInputText id="svc-cname" [(ngModel)]="form.contactName"
+            placeholder="Prénom Nom" class="w-full" />
+        </div>
+        <div class="field">
+          <label for="svc-cemail">Email</label>
+          <input pInputText type="email" id="svc-cemail" [(ngModel)]="form.contactEmail"
+            placeholder="accessibilite@exemple.fr" class="w-full" />
+        </div>
+        <div class="field">
+          <label for="svc-cphone">Téléphone</label>
+          <input pInputText id="svc-cphone" [(ngModel)]="form.contactPhone"
+            placeholder="+33 1 23 45 67 89" class="w-full" />
         </div>
       </div>
       <ng-template pTemplate="footer">
@@ -120,8 +144,9 @@ import { ServicesService } from '../../core/services/services.service';
       h2 { font-size: 1.5rem; font-weight: 700; }
       p { color: var(--p-surface-500); margin-top: 0.25rem; }
     }
-    .dialog-form { display: flex; flex-direction: column; gap: 1.25rem; padding: 0.5rem 0; }
-    .field { display: flex; flex-direction: column; gap: 0.375rem; label { font-weight: 500; font-size: 0.875rem; } }
+    .dialog-form { display: flex; flex-direction: column; gap: 1rem; padding: 0.5rem 0; }
+    .field { display: flex; flex-direction: column; gap: 0.375rem; label { font-weight: 500; font-size: 0.875rem; } small { color: var(--p-surface-400); font-size: 0.75rem; } }
+    .form-section-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--p-surface-400); padding-top: 0.5rem; border-top: 1px solid var(--p-surface-200); margin-top: 0.25rem; }
     .required { color: var(--p-red-500); }
     .service-url { color: var(--p-primary-500); text-decoration: none; font-size: 0.875rem; }
     .actions-cell { display: flex; gap: 0.25rem; justify-content: flex-end; }
@@ -138,7 +163,7 @@ export class ServicesListComponent implements OnInit {
   showDialog = signal(false);
   editingService: any = null;
 
-  form = { name: '', url: '', description: '' };
+  form = { name: '', url: '', description: '', technologies: '', contactName: '', contactEmail: '', contactPhone: '' };
 
   ngOnInit() {
     this.load();
@@ -160,12 +185,20 @@ export class ServicesListComponent implements OnInit {
 
   openEdit(service: any) {
     this.editingService = service;
-    this.form = { name: service.name, url: service.url, description: service.description ?? '' };
+    this.form = {
+      name: service.name,
+      url: service.url,
+      description: service.description ?? '',
+      technologies: service.technologies ?? '',
+      contactName: service.contactName ?? '',
+      contactEmail: service.contactEmail ?? '',
+      contactPhone: service.contactPhone ?? '',
+    };
     this.showDialog.set(true);
   }
 
   resetForm() {
-    this.form = { name: '', url: '', description: '' };
+    this.form = { name: '', url: '', description: '', technologies: '', contactName: '', contactEmail: '', contactPhone: '' };
     this.editingService = null;
   }
 

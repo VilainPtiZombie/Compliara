@@ -10,13 +10,15 @@ main ─────────────────────────
         └── fix/file-type-validator ─── merge → develop
 ```
 
-| Branche | Rôle | Protégée |
+| Branche | Rôle | Push direct |
 |---|---|---|
-| `main` | Code en production, releases stables | Oui — merge uniquement |
-| `develop` | Intégration des features avant release | Recommandé |
-| `feat/*` | Nouvelles fonctionnalités | Non |
-| `fix/*` | Corrections de bugs | Non |
-| `hotfix/*` | Correctif urgent directement sur main | Non |
+| `main` | Code en production, releases stables | ✅ Oui (propriétaire) |
+| `develop` | Intégration des features avant release | ✅ Oui (propriétaire) |
+| `feat/*` | Nouvelles fonctionnalités | ✅ Oui |
+| `fix/*` | Corrections de bugs | ✅ Oui |
+| `hotfix/*` | Correctif urgent directement sur main | ✅ Oui |
+
+> Le propriétaire du repo peut pusher directement sur toutes les branches sans Pull Request. Les PRs deviennent obligatoires uniquement si des collaborateurs externes rejoignent le projet.
 
 ---
 
@@ -78,16 +80,14 @@ git checkout -b feat/nom-de-la-feature
 git add .
 git commit -m "feat(scope): description"
 
-# 4. Pousser la branche
-git push -u origin feat/nom-de-la-feature
-
-# 5. Créer une Pull Request sur GitHub : feat/xxx → develop
-#    (via l'interface GitHub)
-
-# 6. Après merge, nettoyer
+# 4. Merger directement dans develop (sans PR)
 git checkout develop
-git pull origin develop
+git merge feat/nom-de-la-feature
+git push origin develop
+
+# 5. Nettoyer la branche
 git branch -d feat/nom-de-la-feature
+git push origin --delete feat/nom-de-la-feature
 ```
 
 ---
@@ -95,16 +95,22 @@ git branch -d feat/nom-de-la-feature
 ## Workflow — Correction de bug
 
 ```bash
-# 1. Partir de develop (bug non critique)
+# 1. Partir de develop
 git checkout develop
 git pull origin develop
 git checkout -b fix/description-du-bug
 
-# Développer le fix + commiter
+# 2. Développer le fix + commiter
 git commit -m "fix(scope): description du correctif"
-git push -u origin fix/description-du-bug
 
-# Pull Request : fix/xxx → develop
+# 3. Merger dans develop
+git checkout develop
+git merge fix/description-du-bug
+git push origin develop
+
+# 4. Nettoyer
+git branch -d fix/description-du-bug
+git push origin --delete fix/description-du-bug
 ```
 
 ---
@@ -117,15 +123,21 @@ git checkout main
 git pull origin main
 git checkout -b hotfix/description-urgente
 
-# Corriger + commiter
+# 2. Corriger + commiter
 git commit -m "fix: correction urgente XYZ"
-git push -u origin hotfix/description-urgente
 
-# 2. Pull Request : hotfix/xxx → main
-# 3. Après merge sur main, reporter aussi sur develop
+# 3. Merger dans main ET develop
+git checkout main
+git merge hotfix/description-urgente
+git push origin main
+
 git checkout develop
-git merge main
+git merge hotfix/description-urgente
 git push origin develop
+
+# 4. Nettoyer
+git branch -d hotfix/description-urgente
+git push origin --delete hotfix/description-urgente
 ```
 
 ---
@@ -133,16 +145,16 @@ git push origin develop
 ## Release — Merger develop dans main
 
 ```bash
-# 1. S'assurer que develop est stable et à jour
+# 1. S'assurer que develop est stable
 git checkout develop
 git pull origin develop
 
-# 2. Créer la Pull Request : develop → main
-#    (via l'interface GitHub — permet une review)
-
-# 3. Après merge, taguer la release
+# 2. Merger directement dans main (sans PR)
 git checkout main
-git pull origin main
+git merge develop
+git push origin main
+
+# 3. Taguer la release
 git tag -a v1.0.0 -m "Release v1.0.0 — Services CRUD + Import Excel + Déclarations"
 git push origin v1.0.0
 ```

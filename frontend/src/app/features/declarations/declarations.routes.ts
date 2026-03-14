@@ -7,6 +7,11 @@ export const DECLARATIONS_ROUTES: Routes = [
       import('./declarations-list.component').then((m) => m.DeclarationsListComponent),
   },
   {
+    path: 'publish',
+    loadComponent: () =>
+      import('./publish/publish-declaration.component').then((m) => m.PublishDeclarationComponent),
+  },
+  {
     path: 'create',
     loadComponent: () =>
       import('./create/create-declaration.component').then((m) => m.CreateDeclarationComponent),

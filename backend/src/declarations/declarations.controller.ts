@@ -32,9 +32,11 @@ class CreateDeclarationDto {
   @IsString() @IsNotEmpty() serviceId: string;
   @IsString() @IsOptional() rgaaVersion?: string;
   @IsDateString() @IsOptional() dateAudit?: string;
+  @IsString() @IsOptional() auditCompany?: string;
   @IsString() @IsOptional() contactName?: string;
   @IsString() @IsOptional() contactEmail?: string;
   @IsString() @IsOptional() contactPhone?: string;
+  @IsString() @IsOptional() tools?: string;
   @IsArray() @IsOptional() @ValidateNested({ each: true }) @Type(() => CreatePageDto) pages?: CreatePageDto[];
 }
 
@@ -42,9 +44,11 @@ class UpdateDeclarationDto {
   @IsString() @IsOptional() rgaaVersion?: string;
   @IsDateString() @IsOptional() dateAudit?: string;
   @IsString() @IsOptional() status?: string;
+  @IsString() @IsOptional() auditCompany?: string;
   @IsString() @IsOptional() contactName?: string;
   @IsString() @IsOptional() contactEmail?: string;
   @IsString() @IsOptional() contactPhone?: string;
+  @IsString() @IsOptional() tools?: string;
 }
 
 @UseGuards(JwtAuthGuard)

@@ -7,6 +7,7 @@ import { ButtonModule } from 'primeng/button';
 import { StepperModule } from 'primeng/stepper';
 import { SelectModule } from 'primeng/select';
 import { InputTextModule } from 'primeng/inputtext';
+import { TextareaModule } from 'primeng/textarea';
 import { DatePickerModule } from 'primeng/datepicker';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
@@ -40,6 +41,7 @@ const PAGE_TYPES = [
     StepperModule,
     SelectModule,
     InputTextModule,
+    TextareaModule,
     DatePickerModule,
     TableModule,
     TagModule,
@@ -107,7 +109,30 @@ const PAGE_TYPES = [
                 </div>
 
                 <div class="field">
-                  <label>Nom du ou des auditeurs</label>
+                  <label>Société auditrice</label>
+                  <input pInputText [(ngModel)]="form.auditCompany"
+                    placeholder="Nom de la société" class="w-full" />
+                </div>
+
+                <div class="field col-span-2">
+                  <label>Outils utilisés pour l'audit</label>
+                  <textarea pTextarea [(ngModel)]="form.tools" rows="2"
+                    placeholder="Wave, Colour Contrast Analyser, Inspecteur de code..." class="w-full"></textarea>
+                  <small>Séparés par des virgules</small>
+                </div>
+              </div>
+
+              <div class="form-section-title">Contact accessibilité</div>
+              <p class="hint">
+                Ces informations seront affichées dans la section « Retour d'information » de la déclaration.
+                @if (form.serviceId) {
+                  <p-button label="Charger depuis le service" icon="pi pi-download" [text]="true" size="small"
+                    (onClick)="loadContactFromService()" [loading]="loadingContact()" />
+                }
+              </p>
+              <div class="form-grid">
+                <div class="field">
+                  <label>Nom du responsable</label>
                   <input pInputText [(ngModel)]="form.contactName"
                     placeholder="Prénom Nom" class="w-full" />
                 </div>
@@ -221,9 +246,11 @@ const PAGE_TYPES = [
                     <dd>{{ form.rgaaVersion }}</dd>
                     <dt>Date d'audit</dt>
                     <dd>{{ form.dateAudit ? (form.dateAudit | date:'dd/MM/yyyy') : '—' }}</dd>
-                    <dt>Auditeur(s)</dt>
+                    <dt>Société auditrice</dt>
+                    <dd>{{ form.auditCompany || '—' }}</dd>
+                    <dt>Contact responsable</dt>
                     <dd>{{ form.contactName || '—' }}</dd>
-                    <dt>Contact</dt>
+                    <dt>Email</dt>
                     <dd>{{ form.contactEmail || '—' }}</dd>
                   </dl>
                 </div>
@@ -275,7 +302,9 @@ const PAGE_TYPES = [
       gap: 1.25rem;
       max-width: 700px;
     }
-    .field { display: flex; flex-direction: column; gap: 0.375rem; label { font-weight: 500; font-size: 0.875rem; } }
+    .field { display: flex; flex-direction: column; gap: 0.375rem; label { font-weight: 500; font-size: 0.875rem; } small { color: var(--p-surface-400); font-size: 0.75rem; } }
+    .col-span-2 { grid-column: span 2; }
+    .form-section-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--p-surface-400); padding-top: 1rem; border-top: 1px solid var(--p-surface-200); margin-top: 0.75rem; margin-bottom: 0.25rem; }
     .required { color: var(--p-red-500); }
     .step-footer { display: flex; gap: 0.75rem; margin-top: 2rem; justify-content: flex-end; }
     .hint { color: var(--p-surface-500); font-size: 0.875rem; margin-bottom: 1rem; }
@@ -322,10 +351,14 @@ export class CreateDeclarationComponent implements OnInit {
   rgaaVersions = RGAA_VERSIONS;
   pageTypes = PAGE_TYPES;
 
+  loadingContact = signal(false);
+
   form = {
     serviceId: '',
     rgaaVersion: '4.1',
     dateAudit: null as Date | null,
+    auditCompany: '',
+    tools: '',
     contactName: '',
     contactEmail: '',
     contactPhone: '',
@@ -336,6 +369,20 @@ export class CreateDeclarationComponent implements OnInit {
 
   ngOnInit() {
     this.servicesService.findAll().subscribe(s => this.services.set(s));
+  }
+
+  loadContactFromService() {
+    if (!this.form.serviceId) return;
+    this.loadingContact.set(true);
+    this.servicesService.findOne(this.form.serviceId).subscribe({
+      next: (svc) => {
+        this.form.contactName = svc.contactName ?? '';
+        this.form.contactEmail = svc.contactEmail ?? '';
+        this.form.contactPhone = svc.contactPhone ?? '';
+        this.loadingContact.set(false);
+      },
+      error: () => this.loadingContact.set(false),
+    });
   }
 
   addPage() {

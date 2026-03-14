@@ -2,6 +2,16 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 
+export interface ServicePayload {
+  name?: string;
+  url?: string;
+  description?: string;
+  technologies?: string;
+  contactName?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ServicesService {
   private http = inject(HttpClient);
@@ -11,11 +21,15 @@ export class ServicesService {
     return this.http.get<any[]>(this.base);
   }
 
-  create(data: { name: string; url: string; description?: string }) {
+  findOne(id: string) {
+    return this.http.get<any>(`${this.base}/${id}`);
+  }
+
+  create(data: ServicePayload) {
     return this.http.post<any>(this.base, data);
   }
 
-  update(id: string, data: { name?: string; url?: string; description?: string }) {
+  update(id: string, data: ServicePayload) {
     return this.http.put<any>(`${this.base}/${id}`, data);
   }
 
