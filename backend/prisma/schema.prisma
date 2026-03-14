@@ -1,0 +1,205 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────
+// TENANT (entreprise cliente)
+// ─────────────────────────────────────────
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  plan      Plan     @default(FREE)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users        User[]
+  services     Service[]
+  declarations Declaration[]
+  correctiveActions CorrectiveAction[]
+}
+
+enum Plan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+// ─────────────────────────────────────────
+// USER
+// ─────────────────────────────────────────
+model User {
+  id        String      @id @default(uuid())
+  tenantId  String
+  email     String      @unique
+  password  String
+  firstName String
+  lastName  String
+  role      UserRole    @default(MEMBER)
+  profile   UserProfile @default(NON_AUDITOR)
+  isActive  Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  tenant            Tenant             @relation(fields: [tenantId], references: [id])
+  correctiveActions CorrectiveAction[]
+}
+
+enum UserRole {
+  ADMIN
+  MEMBER
+}
+
+enum UserProfile {
+  AUDITOR
+  NON_AUDITOR
+}
+
+// ─────────────────────────────────────────
+// SERVICE (site web / application)
+// ─────────────────────────────────────────
+model Service {
+  id          String   @id @default(uuid())
+  tenantId    String
+  name        String
+  url         String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  declarations Declaration[]
+}
+
+// ─────────────────────────────────────────
+// DECLARATION D'ACCESSIBILITE
+// ─────────────────────────────────────────
+model Declaration {
+  id              String            @id @default(uuid())
+  tenantId        String
+  serviceId       String
+  status          DeclarationStatus @default(DRAFT)
+  rgaaVersion     String            @default("4.1")
+  dateAudit       DateTime?
+  datePublication DateTime?
+  dateReview      DateTime?
+  contactEmail    String?
+  contactName     String?
+  contactPhone    String?
+  complianceRate  Float?
+  publicToken     String            @unique @default(uuid())
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  tenant           Tenant            @relation(fields: [tenantId], references: [id])
+  service          Service           @relation(fields: [serviceId], references: [id])
+  auditedPages     AuditedPage[]
+  criterionResults CriterionResult[]
+}
+
+enum DeclarationStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+// ─────────────────────────────────────────
+// PAGES AUDITEES (echantillon representatif)
+// ─────────────────────────────────────────
+model AuditedPage {
+  id            String   @id @default(uuid())
+  declarationId String
+  name          String
+  url           String
+  pageType      PageType @default(OTHER)
+  order         Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  declaration      Declaration       @relation(fields: [declarationId], references: [id], onDelete: Cascade)
+  criterionResults CriterionResult[] @relation("AffectedPages")
+}
+
+enum PageType {
+  HOME
+  CONTACT
+  FORM
+  CONTENT
+  LEGAL
+  SEARCH
+  AUTHENTICATION
+  OTHER
+}
+
+// ─────────────────────────────────────────
+// RESULTATS PAR CRITERE RGAA
+// ─────────────────────────────────────────
+model CriterionResult {
+  id             String          @id @default(uuid())
+  declarationId  String
+  criterionRef   String
+  thematic       String
+  level          String          @default("")
+  title          String
+  status         CriterionStatus
+  comment        String?
+  impact         ImpactLevel?
+  correctionNote String?
+  hasWaiver      Boolean         @default(false)
+  waiverReason   String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  declaration      Declaration       @relation(fields: [declarationId], references: [id], onDelete: Cascade)
+  affectedPages    AuditedPage[]     @relation("AffectedPages")
+  correctiveAction CorrectiveAction?
+}
+
+enum CriterionStatus {
+  CONFORME
+  NON_CONFORME
+  NON_APPLICABLE
+}
+
+enum ImpactLevel {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+// ─────────────────────────────────────────
+// ACTIONS CORRECTIVES (dashboard / planning)
+// ─────────────────────────────────────────
+model CorrectiveAction {
+  id                String       @id @default(uuid())
+  tenantId          String
+  criterionResultId String       @unique
+  title             String
+  description       String?
+  priority          ImpactLevel  @default(MEDIUM)
+  status            ActionStatus @default(TODO)
+  assignedToId      String?
+  dueDate           DateTime?
+  sprint            String?
+  resolvedAt        DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  criterionResult CriterionResult @relation(fields: [criterionResultId], references: [id], onDelete: Cascade)
+  assignedTo      User?           @relation(fields: [assignedToId], references: [id])
+  tenant          Tenant          @relation(fields: [tenantId], references: [id])
+}
+
+enum ActionStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  WONT_FIX
+}
