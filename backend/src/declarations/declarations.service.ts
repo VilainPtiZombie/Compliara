@@ -1,9 +1,13 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+
+import { RGAA_CRITERIA } from '../data/rgaa-criteria.data';
 
 @Injectable()
 export class DeclarationsService {
   constructor(private prisma: PrismaService) {}
+
+  // ── CRUD de base ────────────────────────────────────────────────────────────
 
   async create(
     data: {
@@ -40,7 +44,7 @@ export class DeclarationsService {
               })),
             }
           : undefined,
-      },
+      } as any,
       include: { service: { select: { id: true, name: true } } },
     });
   }
@@ -135,5 +139,153 @@ export class DeclarationsService {
 
     if (!decl) throw new NotFoundException('Déclaration introuvable');
     return decl;
+  }
+
+  // ── Audit ───────────────────────────────────────────────────────────────────
+
+  async initAudit(declarationId: string, tenantId: string) {
+    const decl = await this.findOne(declarationId, tenantId);
+
+    const existingRefs = new Set(decl.criterionResults.map(r => r.criterionRef));
+    const toCreate = RGAA_CRITERIA.filter(c => !existingRefs.has(c.ref));
+
+    if (toCreate.length > 0) {
+      await this.prisma.criterionResult.createMany({
+        data: toCreate.map(c => ({
+          declarationId,
+          criterionRef: c.ref,
+          thematic: c.thematic,
+          title: c.title,
+          level: c.level,
+          status: 'NON_AUDITE' as any,
+        })),
+      });
+    }
+
+    return this.findOne(declarationId, tenantId);
+  }
+
+  async updatePages(
+    declarationId: string,
+    tenantId: string,
+    pages: { name: string; url: string; pageType?: string }[],
+  ) {
+    await this.findOne(declarationId, tenantId);
+
+    // Supprimer toutes les pages existantes et recréer
+    await this.prisma.auditedPage.deleteMany({ where: { declarationId } });
+
+    if (pages.length > 0) {
+      await this.prisma.auditedPage.createMany({
+        data: pages.map((p, i) => ({
+          declarationId,
+          name: p.name,
+          url: p.url,
+          pageType: (p.pageType ?? 'OTHER') as any,
+          order: i + 1,
+        })),
+      });
+    }
+
+    return this.prisma.auditedPage.findMany({
+      where: { declarationId },
+      orderBy: { order: 'asc' },
+    });
+  }
+
+  async bulkUpdateCriteria(
+    declarationId: string,
+    tenantId: string,
+    updates: {
+      criterionRef: string;
+      status: string;
+      comment?: string;
+      impact?: string;
+      affectedPageIds?: string[];
+    }[],
+  ) {
+    await this.findOne(declarationId, tenantId);
+
+    for (const update of updates) {
+      const criterion = await this.prisma.criterionResult.findFirst({
+        where: { declarationId, criterionRef: update.criterionRef },
+      });
+      if (!criterion) continue;
+
+      await this.prisma.criterionResult.update({
+        where: { id: criterion.id },
+        data: {
+          status: update.status as any,
+          comment: update.comment ?? null,
+          impact: (update.impact || null) as any,
+          ...(update.affectedPageIds !== undefined && {
+            affectedPages: {
+              set: update.affectedPageIds.map(id => ({ id })),
+            },
+          }),
+        },
+      });
+    }
+
+    await this.recalculateComplianceRate(declarationId);
+    return this.findOne(declarationId, tenantId);
+  }
+
+  async updateCriterion(
+    declarationId: string,
+    criterionRef: string,
+    tenantId: string,
+    data: {
+      status: string;
+      comment?: string;
+      impact?: string;
+      affectedPageIds?: string[];
+    },
+  ) {
+    await this.findOne(declarationId, tenantId);
+
+    const criterion = await this.prisma.criterionResult.findFirst({
+      where: { declarationId, criterionRef },
+    });
+
+    if (!criterion) throw new NotFoundException('Critère introuvable');
+
+    const updated = await this.prisma.criterionResult.update({
+      where: { id: criterion.id },
+      data: {
+        status: data.status as any,
+        comment: data.comment ?? null,
+        impact: (data.impact || null) as any,
+        ...(data.affectedPageIds !== undefined && {
+          affectedPages: {
+            set: data.affectedPageIds.map(id => ({ id })),
+          },
+        }),
+      },
+      include: { affectedPages: true },
+    });
+
+    await this.recalculateComplianceRate(declarationId);
+    return updated;
+  }
+
+  private async recalculateComplianceRate(declarationId: string) {
+    const results = await this.prisma.criterionResult.findMany({
+      where: { declarationId },
+      select: { status: true },
+    });
+
+    const applicable = results.filter(r => (r.status as string) !== 'NON_AUDITE' && r.status !== 'NON_APPLICABLE');
+    const conforme = applicable.filter(r => r.status === 'CONFORME');
+
+    const rate =
+      applicable.length > 0
+        ? Math.round((conforme.length / applicable.length) * 1000) / 10
+        : null;
+
+    await this.prisma.declaration.update({
+      where: { id: declarationId },
+      data: { complianceRate: rate },
+    });
   }
 }

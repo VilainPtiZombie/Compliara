@@ -17,6 +17,11 @@ export const DECLARATIONS_ROUTES: Routes = [
       import('./create/create-declaration.component').then((m) => m.CreateDeclarationComponent),
   },
   {
+    path: ':id/audit',
+    loadComponent: () =>
+      import('./audit/audit-form.component').then((m) => m.AuditFormComponent),
+  },
+  {
     path: ':id',
     loadComponent: () =>
       import('./declaration-detail.component').then((m) => m.DeclarationDetailComponent),

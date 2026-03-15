@@ -153,7 +153,7 @@ model CriterionResult {
   thematic       String
   level          String          @default("")
   title          String
-  status         CriterionStatus
+  status         CriterionStatus @default(NON_AUDITE)
   comment        String?
   impact         ImpactLevel?
   correctionNote String?
@@ -171,6 +171,7 @@ enum CriterionStatus {
   CONFORME
   NON_CONFORME
   NON_APPLICABLE
+  NON_AUDITE
 }
 
 enum ImpactLevel {

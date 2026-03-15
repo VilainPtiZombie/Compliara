@@ -54,4 +54,33 @@ export class DeclarationsService {
     formData.append('serviceId', serviceId);
     return this.http.post<any>(`${this.base}/import`, formData);
   }
+
+  // ── Audit ────────────────────────────────────────────────────────────────────
+
+  initAudit(id: string) {
+    return this.http.post<any>(`${this.base}/${id}/audit/init`, {});
+  }
+
+  updatePages(id: string, pages: { name: string; url: string; pageType: string }[]) {
+    return this.http.put<any[]>(`${this.base}/${id}/audit/pages`, { pages });
+  }
+
+  bulkUpdateCriteria(id: string, criteria: {
+    criterionRef: string;
+    status: string;
+    comment?: string;
+    impact?: string;
+    affectedPageIds?: string[];
+  }[]) {
+    return this.http.put<any>(`${this.base}/${id}/audit/criteria`, { criteria });
+  }
+
+  updateCriterion(id: string, ref: string, data: {
+    status: string;
+    comment?: string;
+    impact?: string;
+    affectedPageIds?: string[];
+  }) {
+    return this.http.patch<any>(`${this.base}/${id}/audit/criteria/${ref}`, data);
+  }
 }
