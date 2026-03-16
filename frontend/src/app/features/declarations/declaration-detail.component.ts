@@ -1,7 +1,7 @@
 import { Component, inject, signal, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { TableModule } from 'primeng/table';
@@ -113,6 +113,8 @@ const RGAA_VERSIONS = ['4.1', '4.1.2', '3.0'];
         <div class="header-actions">
           <p-tag [value]="getDeclarationStatusLabel(declaration()!.status)"
             [severity]="getStatusSeverity(declaration()!.status)" />
+          <p-button label="Auditer" icon="pi pi-check-square" severity="secondary"
+            [outlined]="true" (onClick)="goToAudit()" />
           <p-button label="Modifier" icon="pi pi-pencil" severity="secondary"
             [outlined]="true" (onClick)="openEdit()" />
         </div>
@@ -320,6 +322,7 @@ const RGAA_VERSIONS = ['4.1', '4.1.2', '3.0'];
 })
 export class DeclarationDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private declarationsService = inject(DeclarationsService);
   private messageService = inject(MessageService);
 
@@ -375,6 +378,10 @@ export class DeclarationDetailComponent implements OnInit {
       next: (d) => { this.declaration.set(d); this.loading.set(false); },
       error: () => this.loading.set(false),
     });
+  }
+
+  goToAudit() {
+    this.router.navigate(['/declarations', this.declaration()!.id, 'audit']);
   }
 
   openEdit() {
