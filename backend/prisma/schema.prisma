@@ -195,6 +195,8 @@ model CorrectiveAction {
   assignedToId      String?
   dueDate           DateTime?
   sprint            String?
+  note              String?
+  wontFixReason     String?
   resolvedAt        DateTime?
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt

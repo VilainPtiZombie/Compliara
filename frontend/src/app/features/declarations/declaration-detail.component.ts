@@ -11,12 +11,17 @@ import { ChipModule } from 'primeng/chip';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
+import { TextareaModule } from 'primeng/textarea';
 import { SelectModule } from 'primeng/select';
 import { DatePickerModule } from 'primeng/datepicker';
 import { ToastModule } from 'primeng/toast';
 import { BadgeModule } from 'primeng/badge';
 import { MessageService } from 'primeng/api';
 import { DeclarationsService } from '../../core/services/declarations.service';
+import {
+  CorrectiveActionsService,
+  TeamUser,
+} from '../../core/services/corrective-actions.service';
 
 const STATUSES = [
   { label: 'Brouillon', value: 'DRAFT' },
@@ -25,6 +30,20 @@ const STATUSES = [
 ];
 
 const RGAA_VERSIONS = ['4.1', '4.1.2', '3.0'];
+
+const ACTION_STATUS_OPTIONS = [
+  { label: 'À faire', value: 'TODO' },
+  { label: 'En cours', value: 'IN_PROGRESS' },
+  { label: 'Terminé', value: 'DONE' },
+  { label: 'Ne sera pas corrigé', value: 'WONT_FIX' },
+];
+
+const PRIORITY_OPTIONS = [
+  { label: 'Critique', value: 'CRITICAL' },
+  { label: 'Élevé', value: 'HIGH' },
+  { label: 'Moyen', value: 'MEDIUM' },
+  { label: 'Faible', value: 'LOW' },
+];
 
 @Component({
   selector: 'app-declaration-detail',
@@ -44,6 +63,7 @@ const RGAA_VERSIONS = ['4.1', '4.1.2', '3.0'];
     DialogModule,
     BadgeModule,
     InputTextModule,
+    TextareaModule,
     SelectModule,
     DatePickerModule,
     ToastModule,
@@ -57,7 +77,7 @@ const RGAA_VERSIONS = ['4.1', '4.1.2', '3.0'];
       </div>
     } @else if (declaration()) {
 
-      <!-- Dialog édition -->
+      <!-- Dialog édition déclaration -->
       <p-dialog header="Modifier la déclaration" [(visible)]="showEdit"
         [modal]="true" [style]="{width: '520px'}" [draggable]="false" (onHide)="resetEditForm()">
         <div class="edit-form">
@@ -100,6 +120,83 @@ const RGAA_VERSIONS = ['4.1', '4.1.2', '3.0'];
         <ng-template pTemplate="footer">
           <p-button label="Annuler" severity="secondary" [text]="true" (onClick)="showEdit.set(false)" />
           <p-button label="Enregistrer" icon="pi pi-check" [loading]="saving()" (onClick)="saveEdit()" />
+        </ng-template>
+      </p-dialog>
+
+      <!-- Dialog action corrective -->
+      <p-dialog [header]="actionPanelHeader()"
+        [(visible)]="showActionPanel" [modal]="true" [style]="{width: '580px'}"
+        [draggable]="false" (onHide)="resetActionForm()">
+        @if (selectedCriterion()) {
+          <div class="action-form">
+            <div class="criterion-info">
+              <strong>{{ selectedCriterion()!.criterionRef }}</strong>
+              — {{ selectedCriterion()!.title }}
+            </div>
+
+            <div class="field">
+              <label>Titre de l'action</label>
+              <input pInputText [(ngModel)]="actionForm.title" class="w-full"
+                [placeholder]="'Corriger ' + selectedCriterion()!.criterionRef" />
+            </div>
+            <div class="field">
+              <label>Description</label>
+              <textarea pTextarea [(ngModel)]="actionForm.description" class="w-full" rows="3"
+                placeholder="Décrivez les étapes de correction..."></textarea>
+            </div>
+            <div class="field">
+              <label>Note / Contexte</label>
+              <textarea pTextarea [(ngModel)]="actionForm.note" class="w-full" rows="2"
+                placeholder="Informations complémentaires, liens utiles..."></textarea>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label>Priorité</label>
+                <p-select [(ngModel)]="actionForm.priority" [options]="priorityOptions"
+                  optionLabel="label" optionValue="value" styleClass="w-full" />
+              </div>
+              <div class="field">
+                <label>Statut</label>
+                <p-select [(ngModel)]="actionForm.status" [options]="actionStatusOptions"
+                  optionLabel="label" optionValue="value" styleClass="w-full" />
+              </div>
+            </div>
+            @if (actionForm.status === 'WONT_FIX') {
+              <div class="field">
+                <label>Raison (obligatoire)</label>
+                <input pInputText [(ngModel)]="actionForm.wontFixReason" class="w-full"
+                  placeholder="Expliquez pourquoi cette NC ne sera pas corrigée" />
+              </div>
+            }
+            <div class="field-row">
+              <div class="field">
+                <label>Responsable</label>
+                <p-select [(ngModel)]="actionForm.assignedToId" [options]="teamUsers()"
+                  optionLabel="fullName" optionValue="id" [showClear]="true"
+                  placeholder="Non assigné" styleClass="w-full" />
+              </div>
+              <div class="field">
+                <label>Échéance</label>
+                <p-datepicker [(ngModel)]="actionForm.dueDate" dateFormat="dd/mm/yy"
+                  [showIcon]="true" styleClass="w-full" />
+              </div>
+            </div>
+            <div class="field">
+              <label>Sprint / Livraison</label>
+              <input pInputText [(ngModel)]="actionForm.sprint" class="w-full"
+                placeholder="Sprint 12, Q2 2026, v1.3.0..." />
+            </div>
+          </div>
+        }
+        <ng-template pTemplate="footer">
+          @if (selectedCriterion()?.correctiveAction) {
+            <p-button label="Supprimer" icon="pi pi-trash" severity="danger" [text]="true"
+              [loading]="deletingAction()" (onClick)="deleteAction()" />
+          }
+          <p-button label="Annuler" severity="secondary" [text]="true"
+            (onClick)="showActionPanel.set(false)" />
+          <p-button [label]="selectedCriterion()?.correctiveAction ? 'Mettre à jour' : 'Planifier'"
+            icon="pi pi-check" [loading]="savingAction()" (onClick)="saveAction()" />
         </ng-template>
       </p-dialog>
 
@@ -160,12 +257,17 @@ const RGAA_VERSIONS = ['4.1', '4.1.2', '3.0'];
           <p-tab [value]="0">Critères</p-tab>
           <p-tab [value]="1">Pages</p-tab>
           <p-tab [value]="2">Contact</p-tab>
+          <p-tab [value]="3">
+            Planification
+            @if (ncWithoutAction() > 0) {
+              <p-badge [value]="ncWithoutAction()" severity="warn" style="margin-left: 0.5rem" />
+            }
+          </p-tab>
         </p-tablist>
 
         <p-tabpanels>
           <!-- Tab Critères -->
           <p-tabpanel [value]="0">
-            <!-- Barre de filtres -->
             <div class="criteria-toolbar">
               <input pInputText #globalFilter
                 placeholder="Rechercher (ref, intitulé...)"
@@ -213,6 +315,7 @@ const RGAA_VERSIONS = ['4.1', '4.1.2', '3.0'];
                   <th pSortableColumn="impact" style="width: 110px">
                     Impact <p-sortIcon field="impact" />
                   </th>
+                  <th style="width: 130px">Action</th>
                 </tr>
               </ng-template>
               <ng-template pTemplate="body" let-cr>
@@ -228,10 +331,21 @@ const RGAA_VERSIONS = ['4.1', '4.1.2', '3.0'];
                       <p-tag [value]="cr.impact" [severity]="getImpactSeverity(cr.impact)" />
                     } @else { — }
                   </td>
+                  <td>
+                    @if (cr.status === 'NON_CONFORME') {
+                      <p-button
+                        [label]="cr.correctiveAction ? 'Modifier plan' : 'Planifier'"
+                        [icon]="cr.correctiveAction ? 'pi pi-pencil' : 'pi pi-calendar-plus'"
+                        size="small"
+                        [severity]="cr.correctiveAction ? 'secondary' : 'primary'"
+                        [outlined]="true"
+                        (onClick)="openActionPanel(cr)" />
+                    }
+                  </td>
                 </tr>
               </ng-template>
               <ng-template pTemplate="emptymessage">
-                <tr><td colspan="5" style="text-align:center; color: var(--p-surface-400); padding: 2rem">
+                <tr><td colspan="6" style="text-align:center; color: var(--p-surface-400); padding: 2rem">
                   Aucun critère correspondant aux filtres.
                 </td></tr>
               </ng-template>
@@ -281,6 +395,87 @@ const RGAA_VERSIONS = ['4.1', '4.1.2', '3.0'];
               </dl>
             </div>
           </p-tabpanel>
+
+          <!-- Tab Planification -->
+          <p-tabpanel [value]="3">
+            <!-- Carte résumé -->
+            <p-card styleClass="planning-summary-card">
+              <div class="planning-metrics">
+                <div class="planning-metric">
+                  <span class="metric-label">NC planifiées</span>
+                  <span class="metric-value">{{ ncWithAction() }} / {{ ncCount() }}</span>
+                </div>
+                <div class="planning-metric">
+                  <span class="metric-label">Terminées</span>
+                  <span class="metric-value" style="color: var(--p-green-600)">{{ ncDone() }}</span>
+                </div>
+                <div class="planning-metric">
+                  <span class="metric-label">En cours</span>
+                  <span class="metric-value" style="color: var(--p-blue-500)">{{ ncInProgress() }}</span>
+                </div>
+                <div class="planning-metric">
+                  <span class="metric-label">À faire</span>
+                  <span class="metric-value" style="color: var(--p-surface-500)">{{ ncTodo() }}</span>
+                </div>
+              </div>
+              @if (ncCount() > 0) {
+                <p-progressBar [value]="planningProgress()"
+                  [style]="{height: '8px', marginTop: '1rem'}" [showValue]="false" />
+                <div style="font-size: 0.75rem; color: var(--p-surface-500); margin-top: 0.375rem">
+                  {{ planningProgress() }}% des NC planifiées
+                </div>
+              }
+              <ng-template pTemplate="footer">
+                <p-button label="Planifier toutes les NC" icon="pi pi-list-check"
+                  severity="secondary" [outlined]="true"
+                  [loading]="batchCreating()" (onClick)="batchPlanAll()"
+                  [disabled]="ncWithoutAction() === 0" />
+              </ng-template>
+            </p-card>
+
+            <!-- Tableau des actions planifiées -->
+            @if (declarationActions().length > 0) {
+              <p-table [value]="declarationActions()" styleClass="p-datatable-sm"
+                style="margin-top: 1.5rem" [rowHover]="true">
+                <ng-template pTemplate="header">
+                  <tr>
+                    <th style="width: 90px">Critère</th>
+                    <th>Titre</th>
+                    <th style="width: 100px">Priorité</th>
+                    <th style="width: 120px">Statut</th>
+                    <th style="width: 140px">Responsable</th>
+                    <th style="width: 110px">Échéance</th>
+                    <th style="width: 110px">Sprint</th>
+                    <th style="width: 50px"></th>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-action>
+                  <tr>
+                    <td><strong>{{ action.criterionResult?.criterionRef }}</strong></td>
+                    <td>{{ action.title }}</td>
+                    <td><p-tag [value]="getImpactLabel(action.priority)" [severity]="getImpactSeverity(action.priority)" /></td>
+                    <td><p-tag [value]="getActionStatusLabel(action.status)" [severity]="getActionStatusSeverity(action.status)" /></td>
+                    <td>
+                      {{ action.assignedTo
+                        ? (action.assignedTo.firstName + ' ' + action.assignedTo.lastName)
+                        : '—' }}
+                    </td>
+                    <td>{{ action.dueDate ? (action.dueDate | date:'dd/MM/yyyy') : '—' }}</td>
+                    <td>{{ action.sprint || '—' }}</td>
+                    <td>
+                      <p-button icon="pi pi-pencil" [text]="true" severity="secondary" size="small"
+                        (onClick)="openActionPanel(action.criterionResult)" />
+                    </td>
+                  </tr>
+                </ng-template>
+              </p-table>
+            } @else {
+              <div style="text-align: center; color: var(--p-surface-400); padding: 3rem; margin-top: 1rem;">
+                <i class="pi pi-calendar" style="font-size: 2rem; display: block; margin-bottom: 0.75rem"></i>
+                Aucune action planifiée. Cliquez sur "Planifier" sur une non-conformité, ou utilisez le bouton ci-dessus.
+              </div>
+            }
+          </p-tabpanel>
         </p-tabpanels>
       </p-tabs>
     } @else {
@@ -306,6 +501,7 @@ const RGAA_VERSIONS = ['4.1', '4.1.2', '3.0'];
     .page-url { color: var(--p-primary-500); text-decoration: none; font-size: 0.875rem; }
     .edit-form { display: flex; flex-direction: column; gap: 1rem; padding: 0.5rem 0; }
     .field { display: flex; flex-direction: column; gap: 0.375rem; label { font-weight: 500; font-size: 0.875rem; } }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
     .criteria-toolbar {
       display: flex;
       gap: 0.75rem;
@@ -318,12 +514,41 @@ const RGAA_VERSIONS = ['4.1', '4.1.2', '3.0'];
     dl { display: grid; grid-template-columns: 150px 1fr; gap: 0.5rem 1rem; }
     dt { color: var(--p-surface-500); font-size: 0.875rem; }
     dd { font-weight: 500; margin: 0; }
+    .action-form { display: flex; flex-direction: column; gap: 1rem; padding: 0.5rem 0; }
+    .criterion-info {
+      background: var(--p-surface-100);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 0.875rem;
+      color: var(--p-surface-700);
+      line-height: 1.5;
+    }
+    .planning-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+    }
+    .planning-metric {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .planning-metric .metric-label {
+      font-size: 0.75rem;
+      color: var(--p-surface-500);
+      text-transform: uppercase;
+    }
+    .planning-metric .metric-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
   `],
 })
 export class DeclarationDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private declarationsService = inject(DeclarationsService);
+  private caService = inject(CorrectiveActionsService);
   private messageService = inject(MessageService);
 
   declaration = signal<any>(null);
@@ -331,10 +556,51 @@ export class DeclarationDetailComponent implements OnInit {
   saving = signal(false);
   showEdit = signal(false);
 
+  // Action panel
+  showActionPanel = signal(false);
+  selectedCriterion = signal<any>(null);
+  teamUsers = signal<(TeamUser & { fullName: string })[]>([]);
+  savingAction = signal(false);
+  deletingAction = signal(false);
+  batchCreating = signal(false);
+
+  actionForm: {
+    title: string;
+    description: string;
+    note: string;
+    priority: string;
+    status: string;
+    assignedToId: string | null;
+    dueDate: Date | null;
+    sprint: string;
+    wontFixReason: string;
+  } = {
+    title: '',
+    description: '',
+    note: '',
+    priority: 'MEDIUM',
+    status: 'TODO',
+    assignedToId: null,
+    dueDate: null,
+    sprint: '',
+    wontFixReason: '',
+  };
+
   statuses = STATUSES;
   rgaaVersions = RGAA_VERSIONS;
+  actionStatusOptions = ACTION_STATUS_OPTIONS;
+  priorityOptions = PRIORITY_OPTIONS;
 
-  editForm = { status: '', rgaaVersion: '', dateAudit: null as Date | null, auditCompany: '', tools: '', contactName: '', contactEmail: '', contactPhone: '' };
+  editForm = {
+    status: '',
+    rgaaVersion: '',
+    dateAudit: null as Date | null,
+    auditCompany: '',
+    tools: '',
+    contactName: '',
+    contactEmail: '',
+    contactPhone: '',
+  };
 
   filterStatus: string | null = null;
   filterImpact: string | null = null;
@@ -353,7 +619,29 @@ export class DeclarationDetailComponent implements OnInit {
   ];
 
   totalCriteria = computed(() => this.declaration()?.criterionResults?.length ?? 0);
-  ncCount = computed(() => this.declaration()?.criterionResults?.filter((c: any) => c.status === 'NON_CONFORME').length ?? 0);
+  ncCount = computed(() =>
+    this.declaration()?.criterionResults?.filter((c: any) => c.status === 'NON_CONFORME').length ?? 0
+  );
+
+  declarationActions = computed(() =>
+    (this.declaration()?.criterionResults ?? [])
+      .filter((cr: any) => cr.correctiveAction)
+      .map((cr: any) => ({ ...cr.correctiveAction, criterionResult: cr }))
+  );
+
+  ncWithAction = computed(() => this.declarationActions().length);
+  actionPanelHeader = computed(() =>
+    this.selectedCriterion()?.correctiveAction
+      ? "Modifier l'action corrective"
+      : "Planifier l'action corrective"
+  );
+  ncWithoutAction = computed(() => this.ncCount() - this.ncWithAction());
+  ncDone = computed(() => this.declarationActions().filter((a: any) => a.status === 'DONE').length);
+  ncInProgress = computed(() => this.declarationActions().filter((a: any) => a.status === 'IN_PROGRESS').length);
+  ncTodo = computed(() => this.declarationActions().filter((a: any) => a.status === 'TODO').length);
+  planningProgress = computed(() =>
+    this.ncCount() > 0 ? Math.round((this.ncWithAction() / this.ncCount()) * 100) : 0
+  );
 
   pagesWithNc = computed(() => {
     const d = this.declaration();
@@ -361,22 +649,37 @@ export class DeclarationDetailComponent implements OnInit {
     const results: any[] = d.criterionResults ?? [];
     return (d.auditedPages ?? []).map((page: any) => ({
       ...page,
-      ncCount: results.filter((cr: any) =>
-        cr.status === 'NON_CONFORME' &&
-        cr.affectedPages?.some((ap: any) => ap.id === page.id)
+      ncCount: results.filter(
+        (cr: any) =>
+          cr.status === 'NON_CONFORME' &&
+          cr.affectedPages?.some((ap: any) => ap.id === page.id),
       ).length,
     }));
   });
 
   ngOnInit() {
     this.load();
+    this.loadTeamUsers();
   }
 
   load() {
     const id = this.route.snapshot.paramMap.get('id')!;
     this.declarationsService.findOne(id).subscribe({
-      next: (d) => { this.declaration.set(d); this.loading.set(false); },
+      next: (d) => {
+        this.declaration.set(d);
+        this.loading.set(false);
+      },
       error: () => this.loading.set(false),
+    });
+  }
+
+  loadTeamUsers() {
+    this.caService.getTeamUsers().subscribe({
+      next: (users) => {
+        this.teamUsers.set(
+          users.map((u) => ({ ...u, fullName: `${u.firstName} ${u.lastName}` })),
+        );
+      },
     });
   }
 
@@ -400,31 +703,184 @@ export class DeclarationDetailComponent implements OnInit {
   }
 
   resetEditForm() {
-    this.editForm = { status: '', rgaaVersion: '', dateAudit: null, auditCompany: '', tools: '', contactName: '', contactEmail: '', contactPhone: '' };
+    this.editForm = {
+      status: '',
+      rgaaVersion: '',
+      dateAudit: null,
+      auditCompany: '',
+      tools: '',
+      contactName: '',
+      contactEmail: '',
+      contactPhone: '',
+    };
   }
 
   saveEdit() {
     this.saving.set(true);
     const id = this.declaration()!.id;
-    this.declarationsService.update(id, {
-      status: this.editForm.status,
-      rgaaVersion: this.editForm.rgaaVersion,
-      dateAudit: this.editForm.dateAudit?.toISOString() ?? null,
-      auditCompany: this.editForm.auditCompany,
-      tools: this.editForm.tools,
-      contactName: this.editForm.contactName,
-      contactEmail: this.editForm.contactEmail,
-      contactPhone: this.editForm.contactPhone,
-    }).subscribe({
+    this.declarationsService
+      .update(id, {
+        status: this.editForm.status,
+        rgaaVersion: this.editForm.rgaaVersion,
+        dateAudit: this.editForm.dateAudit?.toISOString() ?? null,
+        auditCompany: this.editForm.auditCompany,
+        tools: this.editForm.tools,
+        contactName: this.editForm.contactName,
+        contactEmail: this.editForm.contactEmail,
+        contactPhone: this.editForm.contactPhone,
+      })
+      .subscribe({
+        next: () => {
+          this.saving.set(false);
+          this.showEdit.set(false);
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Succès',
+            detail: 'Déclaration mise à jour',
+          });
+          this.load();
+        },
+        error: () => {
+          this.saving.set(false);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Erreur',
+            detail: 'Impossible de mettre à jour',
+          });
+        },
+      });
+  }
+
+  openActionPanel(cr: any) {
+    this.selectedCriterion.set(cr);
+    const existing = cr.correctiveAction;
+    if (existing) {
+      this.actionForm = {
+        title: existing.title ?? '',
+        description: existing.description ?? '',
+        note: existing.note ?? '',
+        priority: existing.priority ?? 'MEDIUM',
+        status: existing.status ?? 'TODO',
+        assignedToId: existing.assignedToId ?? null,
+        dueDate: existing.dueDate ? new Date(existing.dueDate) : null,
+        sprint: existing.sprint ?? '',
+        wontFixReason: existing.wontFixReason ?? '',
+      };
+    } else {
+      this.actionForm = {
+        title: '',
+        description: '',
+        note: '',
+        priority: cr.impact ?? 'MEDIUM',
+        status: 'TODO',
+        assignedToId: null,
+        dueDate: null,
+        sprint: '',
+        wontFixReason: '',
+      };
+    }
+    this.showActionPanel.set(true);
+  }
+
+  resetActionForm() {
+    this.selectedCriterion.set(null);
+    this.actionForm = {
+      title: '',
+      description: '',
+      note: '',
+      priority: 'MEDIUM',
+      status: 'TODO',
+      assignedToId: null,
+      dueDate: null,
+      sprint: '',
+      wontFixReason: '',
+    };
+  }
+
+  saveAction() {
+    const cr = this.selectedCriterion();
+    if (!cr) return;
+    this.savingAction.set(true);
+
+    const payload = {
+      title: this.actionForm.title || undefined,
+      description: this.actionForm.description || undefined,
+      note: this.actionForm.note || undefined,
+      priority: this.actionForm.priority as any,
+      status: this.actionForm.status as any,
+      assignedToId: this.actionForm.assignedToId,
+      dueDate: this.actionForm.dueDate?.toISOString() ?? null,
+      sprint: this.actionForm.sprint || undefined,
+      wontFixReason: this.actionForm.wontFixReason || undefined,
+    };
+
+    const obs = cr.correctiveAction
+      ? this.caService.update(cr.correctiveAction.id, payload)
+      : this.caService.create({ criterionResultId: cr.id, ...payload });
+
+    obs.subscribe({
       next: () => {
-        this.saving.set(false);
-        this.showEdit.set(false);
-        this.messageService.add({ severity: 'success', summary: 'Succès', detail: 'Déclaration mise à jour' });
+        this.savingAction.set(false);
+        this.showActionPanel.set(false);
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Succès',
+          detail: cr.correctiveAction ? 'Action mise à jour' : 'Action planifiée',
+        });
+        this.load();
+      },
+      error: (err: any) => {
+        this.savingAction.set(false);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Erreur',
+          detail: err?.error?.message ?? 'Impossible de sauvegarder',
+        });
+      },
+    });
+  }
+
+  deleteAction() {
+    const cr = this.selectedCriterion();
+    if (!cr?.correctiveAction) return;
+    this.deletingAction.set(true);
+    this.caService.remove(cr.correctiveAction.id).subscribe({
+      next: () => {
+        this.deletingAction.set(false);
+        this.showActionPanel.set(false);
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Supprimé',
+          detail: 'Action corrective supprimée',
+        });
         this.load();
       },
       error: () => {
-        this.saving.set(false);
-        this.messageService.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de mettre à jour' });
+        this.deletingAction.set(false);
+        this.messageService.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de supprimer' });
+      },
+    });
+  }
+
+  batchPlanAll() {
+    const id = this.declaration()?.id;
+    if (!id) return;
+    this.batchCreating.set(true);
+    this.caService.batchCreate(id).subscribe({
+      next: (res) => {
+        this.batchCreating.set(false);
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Planification en lot',
+          detail: res.created > 0
+            ? `${res.created} action(s) créée(s)`
+            : 'Toutes les NC ont déjà une action planifiée',
+        });
+        this.load();
+      },
+      error: () => {
+        this.batchCreating.set(false);
+        this.messageService.add({ severity: 'error', summary: 'Erreur', detail: 'Planification en lot échouée' });
       },
     });
   }
@@ -444,14 +900,36 @@ export class DeclarationDetailComponent implements OnInit {
   }
 
   getStatusLabel(status: string): string {
-    return ({ CONFORME: 'C', NON_CONFORME: 'NC', NON_APPLICABLE: 'NA' } as any)[status] ?? status;
+    return ({ CONFORME: 'C', NON_CONFORME: 'NC', NON_APPLICABLE: 'NA', NON_AUDITE: 'NA' } as any)[status] ?? status;
   }
 
   getCriterionSeverity(status: string): 'success' | 'danger' | 'secondary' {
-    return ({ CONFORME: 'success', NON_CONFORME: 'danger', NON_APPLICABLE: 'secondary' } as any)[status] ?? 'secondary';
+    return ({ CONFORME: 'success', NON_CONFORME: 'danger', NON_APPLICABLE: 'secondary', NON_AUDITE: 'secondary' } as any)[status] ?? 'secondary';
   }
 
   getImpactSeverity(impact: string): 'danger' | 'warn' | 'info' | 'secondary' {
     return ({ CRITICAL: 'danger', HIGH: 'warn', MEDIUM: 'info', LOW: 'secondary' } as any)[impact] ?? 'secondary';
+  }
+
+  getImpactLabel(priority: string): string {
+    return ({ CRITICAL: 'Critique', HIGH: 'Élevé', MEDIUM: 'Moyen', LOW: 'Faible' } as any)[priority] ?? priority;
+  }
+
+  getActionStatusLabel(status: string): string {
+    return ({
+      TODO: 'À faire',
+      IN_PROGRESS: 'En cours',
+      DONE: 'Terminé',
+      WONT_FIX: 'Exclu',
+    } as any)[status] ?? status;
+  }
+
+  getActionStatusSeverity(status: string): 'secondary' | 'info' | 'success' | 'warn' {
+    return ({
+      TODO: 'secondary',
+      IN_PROGRESS: 'info',
+      DONE: 'success',
+      WONT_FIX: 'warn',
+    } as any)[status] ?? 'secondary';
   }
 }

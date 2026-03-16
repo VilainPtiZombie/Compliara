@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { ServicesModule } from './services/services.module';
 import { DeclarationsModule } from './declarations/declarations.module';
 import { PublicModule } from './public/public.module';
+import { CorrectiveActionsModule } from './corrective-actions/corrective-actions.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { PublicModule } from './public/public.module';
     ServicesModule,
     DeclarationsModule,
     PublicModule,
+    CorrectiveActionsModule,
   ],
 })
 export class AppModule {}
